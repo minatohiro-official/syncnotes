@@ -304,7 +304,7 @@ if (typeof window.FIREBASE_CONFIG === 'undefined' ||
     if (existing.includes(tag)) return;
     const tags = [...existing, tag];
     note.tags = tags;
-    renderNoteTags(note);
+    renderNoteTags(note, { focusInput: true });
     renderTagFilter();
     currentNotesRef.doc(currentNoteId).update({
       tags,
@@ -317,7 +317,7 @@ if (typeof window.FIREBASE_CONFIG === 'undefined' ||
     if (!note || !currentNotesRef) return;
     const tags = (note.tags || []).filter((t) => t !== tagToRemove);
     note.tags = tags;
-    renderNoteTags(note);
+    renderNoteTags(note, { focusInput: true });
     renderTagFilter();
     currentNotesRef.doc(currentNoteId).update({
       tags,
@@ -325,7 +325,8 @@ if (typeof window.FIREBASE_CONFIG === 'undefined' ||
     }).catch((err) => console.error(err));
   }
 
-  function renderNoteTags(note) {
+  function renderNoteTags(note, opts) {
+    const focusInput = !!(opts && opts.focusInput);
     noteTagsEl.innerHTML = '';
     (note.tags || []).forEach((tag) => {
       const chip = document.createElement('span');
@@ -366,6 +367,7 @@ if (typeof window.FIREBASE_CONFIG === 'undefined' ||
       }
     });
     noteTagsEl.appendChild(input);
+    if (focusInput) input.focus();
   }
 
   function renderTagFilter() {
