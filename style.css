@@ -245,7 +245,7 @@ html, body {
   .mobile-only { display: inline-flex; }
 
   /* タップ操作しやすいよう、文字やボタンを大きくする */
-  .sidebar-header { padding: 22px 18px 16px; }
+  .sidebar-header { padding: calc(22px + env(safe-area-inset-top)) 18px 16px; }
   .sidebar-header h2 { font-size: 1.45rem; }
   .icon-btn {
     font-size: 1.5rem; width: 48px; height: 48px;
@@ -259,12 +259,12 @@ html, body {
   .note-item .preview { font-size: .9rem; }
   .note-item .date { font-size: .78rem; }
 
-  .sidebar-footer { padding: 16px 18px; font-size: .9rem; }
+  .sidebar-footer { padding: 16px 18px calc(16px + env(safe-area-inset-bottom)); font-size: .9rem; }
   .link-btn {
     font-size: .9rem; padding: 8px 10px; margin-left: 4px;
   }
 
-  .editor-toolbar { padding: 16px 0; }
+  .editor-toolbar { padding: calc(16px + env(safe-area-inset-top)) 0 16px; }
   .editor-meta { font-size: .85rem; }
   .note-title-input { font-size: 1.55rem; padding: 20px 0 10px; }
   .note-content-input { font-size: 1.05rem; line-height: 1.8; }
