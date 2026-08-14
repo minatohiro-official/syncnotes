@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>SyncNotes</title>
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#1e1e2e" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="SyncNotes" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ログイン画面 -->
+<div id="login-screen" class="screen">
+  <div class="login-card">
+    <h1>📝 SyncNotes</h1>
+    <p>iPhoneとMacでメモをリアルタイム同期</p>
+
+    <form id="email-auth-form">
+      <input id="email-input" class="text-input" type="email" placeholder="メールアドレス" autocomplete="username" required />
+      <input id="password-input" class="text-input" type="password" placeholder="パスワード(6文字以上)" autocomplete="current-password" required />
+      <button id="email-signin-btn" type="submit" class="btn primary">ログイン</button>
+    </form>
+    <button id="email-signup-btn" class="btn secondary">はじめての方はこちら(新規登録)</button>
+
+    <div class="divider"><span>または</span></div>
+
+    <button id="google-signin-btn" class="btn outline">Googleでログイン</button>
+    <p class="hint-text">※ホーム画面アプリではログインが保持されにくいため、メール+パスワードでの登録をおすすめします。</p>
+    <p id="login-error" class="error-text"></p>
+  </div>
+</div>
+
+<!-- 設定未完了画面 -->
+<div id="config-screen" class="screen" style="display:none;">
+  <div class="login-card">
+    <h1>⚠️ 設定が必要です</h1>
+    <p><code>firebase-config.js</code> にFirebaseプロジェクトの設定値を入力してください。詳しくは README.md を参照してください。</p>
+  </div>
+</div>
+
+<!-- メイン画面 -->
+<div id="app" class="screen" style="display:none;">
+  <div class="app-container">
+    <!-- サイドバー: メモ一覧 -->
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <h2>メモ</h2>
+        <button id="new-note-btn" class="icon-btn" title="新規メモ">＋</button>
+      </div>
+      <div class="search-box">
+        <input id="search-input" type="text" placeholder="検索" />
+      </div>
+      <ul id="notes-list" class="notes-list"></ul>
+      <div class="sidebar-footer">
+        <span id="sync-status" class="sync-status">同期中…</span>
+        <span>
+          <button id="set-password-btn" class="link-btn">パスワード設定</button>
+          <button id="signout-btn" class="link-btn">ログアウト</button>
+        </span>
+      </div>
+    </aside>
+
+    <!-- エディタ -->
+    <main id="editor-pane" class="editor-pane">
+      <div class="editor-toolbar">
+        <button id="back-btn" class="icon-btn mobile-only" title="戻る">←</button>
+        <span id="editor-meta" class="editor-meta"></span>
+        <button id="delete-note-btn" class="icon-btn" title="削除">🗑</button>
+      </div>
+      <input id="note-title" class="note-title-input" placeholder="タイトル" />
+      <textarea id="note-content" class="note-content-input" placeholder="ここにメモを入力…"></textarea>
+      <div id="empty-state" class="empty-state">
+        <p>左のリストからメモを選ぶか、＋で新規作成してください。</p>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- パスワード設定モーダル -->
+<div id="password-modal" class="modal-overlay" style="display:none;">
+  <div class="modal-card">
+    <h2>パスワードを設定</h2>
+    <p class="modal-desc">今ログイン中のアカウント(<span id="password-modal-email"></span>)に、メールアドレス+パスワードでもログインできるように設定します。設定後は、iPhoneなど他の端末でも同じメールアドレスとこのパスワードでログインできます。</p>
+    <input id="new-password-input" class="text-input" type="password" placeholder="新しいパスワード(6文字以上)" />
+    <input id="new-password-confirm-input" class="text-input" type="password" placeholder="パスワード(確認)" />
+    <p id="password-modal-error" class="error-text"></p>
+    <div class="modal-actions">
+      <button id="password-modal-cancel" class="btn secondary">キャンセル</button>
+      <button id="password-modal-save" class="btn primary">保存</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
