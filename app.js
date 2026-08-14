@@ -25,6 +25,7 @@ const notesListEl = document.getElementById('notes-list');
 const newNoteBtn = document.getElementById('new-note-btn');
 const searchInput = document.getElementById('search-input');
 const syncStatusEl = document.getElementById('sync-status');
+const tagFilterEl = document.getElementById('tag-filter');
 
 const titleInput = document.getElementById('note-title');
 const contentInput = document.getElementById('note-content');
@@ -32,12 +33,15 @@ const emptyState = document.getElementById('empty-state');
 const editorMeta = document.getElementById('editor-meta');
 const deleteBtn = document.getElementById('delete-note-btn');
 const backBtn = document.getElementById('back-btn');
+const noteTagsEl = document.getElementById('note-tags');
 const appContainer = document.querySelector('.app-container');
 
 let notes = [];
 let currentNoteId = null;
 let unsubscribeNotes = null;
 let saveTimer = null;
+let currentNotesRef = null;
+let activeTagFilter = null;
 
 // --- 設定チェック ---
 if (typeof window.FIREBASE_CONFIG === 'undefined' ||
@@ -208,6 +212,7 @@ if (typeof window.FIREBASE_CONFIG === 'undefined' ||
 
   function startSync(db, uid) {
     const notesRef = db.collection('users').doc(uid).collection('notes');
+    currentNotesRef = notesRef;
 
     unsubscribeNotes = notesRef.orderBy('updatedAt', 'desc').onSnapshot(
       (snapshot) => {
@@ -247,6 +252,7 @@ if (typeof window.FIREBASE_CONFIG === 'undefined' ||
     notesRef.add({
       title: '',
       content: '',
+      tags: [],
       createdAt: now,
       updatedAt: now,
     }).then((docRef) => {
@@ -284,6 +290,120 @@ if (typeof window.FIREBASE_CONFIG === 'undefined' ||
     }, 500);
   }
 
+  // --- タグ ---
+  function normalizeTag(raw) {
+    return raw.trim().replace(/^#/, '').replace(/\s+/g, ' ');
+  }
+
+  function addTag(rawTag) {
+    const note = notes.find((n) => n.id === currentNoteId);
+    if (!note || !currentNotesRef) return;
+    const tag = normalizeTag(rawTag);
+    if (!tag) return;
+    const existing = note.tags || [];
+    if (existing.includes(tag)) return;
+    const tags = [...existing, tag];
+    note.tags = tags;
+    renderNoteTags(note);
+    renderTagFilter();
+    currentNotesRef.doc(currentNoteId).update({
+      tags,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    }).catch((err) => console.error(err));
+  }
+
+  function removeTag(tagToRemove) {
+    const note = notes.find((n) => n.id === currentNoteId);
+    if (!note || !currentNotesRef) return;
+    const tags = (note.tags || []).filter((t) => t !== tagToRemove);
+    note.tags = tags;
+    renderNoteTags(note);
+    renderTagFilter();
+    currentNotesRef.doc(currentNoteId).update({
+      tags,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    }).catch((err) => console.error(err));
+  }
+
+  function renderNoteTags(note) {
+    noteTagsEl.innerHTML = '';
+    (note.tags || []).forEach((tag) => {
+      const chip = document.createElement('span');
+      chip.className = 'tag-pill';
+      const label = document.createElement('span');
+      label.className = 'tag-pill-text';
+      label.textContent = tag;
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'tag-remove';
+      removeBtn.title = 'タグを削除';
+      removeBtn.textContent = '×';
+      removeBtn.addEventListener('click', () => removeTag(tag));
+      chip.appendChild(label);
+      chip.appendChild(removeBtn);
+      noteTagsEl.appendChild(chip);
+    });
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'tag-input';
+    input.placeholder = (note.tags || []).length ? 'タグを追加…' : '+ タグを追加(Enterで確定)';
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        if (input.value.trim()) {
+          addTag(input.value);
+          input.value = '';
+        }
+      } else if (e.key === 'Backspace' && input.value === '' && (note.tags || []).length) {
+        removeTag(note.tags[note.tags.length - 1]);
+      }
+    });
+    input.addEventListener('blur', () => {
+      if (input.value.trim()) {
+        addTag(input.value);
+        input.value = '';
+      }
+    });
+    noteTagsEl.appendChild(input);
+  }
+
+  function renderTagFilter() {
+    const allTags = Array.from(new Set(notes.flatMap((n) => n.tags || []))).sort((a, b) => a.localeCompare(b, 'ja'));
+    tagFilterEl.innerHTML = '';
+    if (allTags.length === 0) {
+      tagFilterEl.style.display = 'none';
+      activeTagFilter = null;
+      return;
+    }
+    if (activeTagFilter && !allTags.includes(activeTagFilter)) {
+      activeTagFilter = null;
+    }
+    tagFilterEl.style.display = 'flex';
+
+    const allChip = document.createElement('button');
+    allChip.type = 'button';
+    allChip.className = 'tag-chip' + (activeTagFilter === null ? ' active' : '');
+    allChip.textContent = 'すべて';
+    allChip.addEventListener('click', () => {
+      activeTagFilter = null;
+      renderNotesList();
+    });
+    tagFilterEl.appendChild(allChip);
+
+    allTags.forEach((tag) => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'tag-chip' + (activeTagFilter === tag ? ' active' : '');
+      chip.textContent = '#' + tag;
+      chip.addEventListener('click', () => {
+        activeTagFilter = activeTagFilter === tag ? null : tag;
+        renderNotesList();
+      });
+      tagFilterEl.appendChild(chip);
+    });
+  }
+
   function selectNote(id) {
     currentNoteId = id;
     renderNotesList();
@@ -292,9 +412,12 @@ if (typeof window.FIREBASE_CONFIG === 'undefined' ||
   }
 
   function renderNotesList() {
+    renderTagFilter();
+
     const query = searchInput.value.trim().toLowerCase();
     notesListEl.innerHTML = '';
     const filtered = notes.filter((n) => {
+      if (activeTagFilter && !(n.tags || []).includes(activeTagFilter)) return false;
       if (!query) return true;
       return (n.title || '').toLowerCase().includes(query) ||
              (n.content || '').toLowerCase().includes(query);
@@ -316,6 +439,19 @@ if (typeof window.FIREBASE_CONFIG === 'undefined' ||
       li.querySelector('.title').textContent = title;
       li.querySelector('.preview').textContent = preview;
       li.querySelector('.date').textContent = date;
+
+      if (note.tags && note.tags.length) {
+        const tagsRow = document.createElement('div');
+        tagsRow.className = 'item-tags';
+        note.tags.forEach((t) => {
+          const pill = document.createElement('span');
+          pill.className = 'item-tag';
+          pill.textContent = t;
+          tagsRow.appendChild(pill);
+        });
+        li.appendChild(tagsRow);
+      }
+
       li.addEventListener('click', () => selectNote(note.id));
       notesListEl.appendChild(li);
     });
@@ -327,6 +463,8 @@ if (typeof window.FIREBASE_CONFIG === 'undefined' ||
       titleInput.style.display = 'none';
       contentInput.style.display = 'none';
       deleteBtn.style.display = 'none';
+      noteTagsEl.style.display = 'none';
+      noteTagsEl.innerHTML = '';
       editorMeta.textContent = '';
       emptyState.classList.add('visible');
       return;
@@ -335,8 +473,10 @@ if (typeof window.FIREBASE_CONFIG === 'undefined' ||
     titleInput.style.display = 'block';
     contentInput.style.display = 'block';
     deleteBtn.style.display = 'inline-block';
+    noteTagsEl.style.display = 'flex';
     titleInput.value = note.title || '';
     contentInput.value = note.content || '';
+    renderNoteTags(note);
     editorMeta.textContent = note.updatedAt && note.updatedAt.toDate
       ? '最終更新: ' + note.updatedAt.toDate().toLocaleString('ja-JP')
       : '';

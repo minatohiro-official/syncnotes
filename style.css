@@ -152,6 +152,21 @@ html, body {
 .search-box input:focus {
   outline: none; border-color: var(--accent); background: #fff;
 }
+
+/* タグフィルター */
+.tag-filter {
+  display: none; gap: 6px; padding: 0 18px 12px; overflow-x: auto;
+  scrollbar-width: none;
+}
+.tag-filter::-webkit-scrollbar { display: none; }
+.tag-chip {
+  flex-shrink: 0; border: 1.5px solid var(--border); background: #fff; color: var(--text-dim);
+  font-size: .76rem; font-weight: 600; padding: 6px 12px; border-radius: 999px; cursor: pointer;
+  font-family: inherit; white-space: nowrap; transition: all .15s ease;
+}
+.tag-chip:hover { border-color: #ded6ff; color: var(--accent); }
+.tag-chip.active { background: var(--accent-grad); border-color: transparent; color: #fff; }
+
 .notes-list { list-style: none; margin: 0; padding: 4px 10px 10px; overflow-y: auto; flex: 1; }
 .note-item {
   padding: 13px 14px; margin-bottom: 4px; border-radius: var(--radius-md); cursor: pointer;
@@ -167,6 +182,11 @@ html, body {
 .note-item .title { font-weight: 700; font-size: .93rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
 .note-item .preview { font-size: .8rem; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
 .note-item .date { font-size: .7rem; color: var(--text-faint); margin-top: 5px; font-weight: 500; }
+.item-tags { display: flex; gap: 4px; margin-top: 7px; flex-wrap: wrap; }
+.item-tag {
+  font-size: .68rem; font-weight: 600; color: var(--accent-dark); background: var(--accent-light);
+  padding: 2px 9px; border-radius: 999px;
+}
 
 .sidebar-footer {
   padding: 12px 18px; border-top: 1px solid var(--border); display: flex;
@@ -213,6 +233,30 @@ html, body {
 .editor-meta { font-size: .78rem; color: var(--text-faint); font-weight: 500; }
 .mobile-only { display: none; }
 
+/* タグ入力 */
+.note-tags {
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+  padding-top: 16px;
+}
+.tag-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--accent-light); color: var(--accent-dark);
+  font-size: .8rem; font-weight: 600; padding: 5px 6px 5px 12px; border-radius: 999px;
+}
+.tag-pill-text::before { content: "#"; opacity: .6; }
+.tag-remove {
+  border: none; background: rgba(109,94,252,.15); color: var(--accent-dark);
+  width: 16px; height: 16px; border-radius: 50%; cursor: pointer; font-size: .68rem; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center; font-family: inherit;
+  transition: background .15s ease;
+}
+.tag-remove:hover { background: rgba(109,94,252,.32); }
+.tag-input {
+  border: none; outline: none; font-size: .85rem; font-family: inherit; background: transparent;
+  padding: 6px 4px; min-width: 120px; flex: 1; color: var(--text);
+}
+.tag-input::placeholder { color: var(--text-faint); }
+
 .note-title-input {
   border: none; outline: none; font-size: 1.6rem; font-weight: 800; letter-spacing: -.01em;
   padding: 24px 0 8px; width: 100%; background: transparent; color: var(--text);
@@ -258,6 +302,14 @@ html, body {
   .note-item .title { font-size: 1.05rem; }
   .note-item .preview { font-size: .9rem; }
   .note-item .date { font-size: .78rem; }
+  .item-tag { font-size: .74rem; padding: 3px 10px; }
+
+  .tag-filter { padding: 0 18px 14px; }
+  .tag-chip { font-size: .82rem; padding: 8px 14px; }
+  .note-tags { padding-top: 18px; }
+  .tag-pill { font-size: .88rem; padding: 7px 8px 7px 14px; }
+  .tag-remove { width: 20px; height: 20px; font-size: .78rem; }
+  .tag-input { font-size: .95rem; padding: 8px 4px; }
 
   .sidebar-footer { padding: 16px 18px calc(16px + env(safe-area-inset-bottom)); font-size: .9rem; }
   .link-btn {
