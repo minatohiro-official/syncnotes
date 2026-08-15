@@ -798,7 +798,18 @@ if (typeof window.FIREBASE_CONFIG === 'undefined' ||
 
   contentInput.addEventListener('blur', () => {
     showContentViewMode();
+    resetPageScroll();
   });
+  titleInput.addEventListener('blur', resetPageScroll);
+
+  // iOS Safariでは、キーボードが閉じたあとにページ全体がわずかにスクロール
+  // されたまま戻らなくなることがある。html/bodyを固定した上で、入力欄から
+  // フォーカスが外れたタイミングで念のためスクロール位置を強制的にリセットする。
+  function resetPageScroll() {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }
 
   // 初期表示はメモ未選択状態
   renderEditor();

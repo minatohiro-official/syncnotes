@@ -25,6 +25,14 @@
 
 html, body {
   margin: 0; padding: 0; height: 100%;
+  /* iOS Safariでは、キーボードの表示/非表示のタイミングでページ全体が
+     中途半端にスクロールされたまま戻らなくなることがある。ページ自体を
+     固定してスクロールできないようにし、実際のスクロールはアプリ内の
+     各エリア(メモ一覧・本文など)だけに任せることでこれを防ぐ。 */
+  position: fixed;
+  width: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
   font-family: "Inter", "Noto Sans JP", -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
   background: var(--bg);
   color: var(--text);
