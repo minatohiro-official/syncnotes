@@ -52,7 +52,7 @@ html, body {
 /* ログイン画面 */
 #login-screen, #config-screen {
   display: flex; align-items: center; justify-content: center;
-  height: 100vh; padding: 24px;
+  height: 100vh; height: 100dvh; padding: 24px;
   background:
     radial-gradient(circle at 15% 20%, rgba(255,255,255,.18), transparent 40%),
     radial-gradient(circle at 85% 80%, rgba(255,255,255,.12), transparent 45%),
@@ -132,7 +132,7 @@ html, body {
 .divider span { padding: 0 12px; }
 
 /* アプリ全体 */
-.app-container { display: flex; height: 100vh; background: var(--bg); }
+.app-container { display: flex; height: 100vh; height: 100dvh; background: var(--bg); }
 
 .sidebar {
   width: 300px; flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border);
@@ -369,8 +369,8 @@ html, body {
   .editor-toolbar { padding: calc(16px + env(safe-area-inset-top)) 0 16px; }
   .editor-meta { font-size: .85rem; }
   .note-title-input { font-size: 1.55rem; padding: 20px 0 10px; }
-  .note-content-input { line-height: 1.8; }
-  .note-content-view { line-height: 1.8; }
+  .note-content-input { line-height: 1.8; padding-bottom: calc(28px + env(safe-area-inset-bottom)); }
+  .note-content-view { line-height: 1.8; padding-bottom: calc(28px + env(safe-area-inset-bottom)); }
   .font-settings-panel { right: -18px; width: 200px; }
 
   .btn { padding: 15px 20px; font-size: 1.05rem; }
