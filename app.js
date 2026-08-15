@@ -34,6 +34,7 @@ const contentView = document.getElementById('note-content-view');
 const emptyState = document.getElementById('empty-state');
 const editorMeta = document.getElementById('editor-meta');
 const deleteBtn = document.getElementById('delete-note-btn');
+const copyNoteBtn = document.getElementById('copy-note-btn');
 const backBtn = document.getElementById('back-btn');
 const noteTagsEl = document.getElementById('note-tags');
 const appContainer = document.querySelector('.app-container');
@@ -656,6 +657,7 @@ if (typeof window.FIREBASE_CONFIG === 'undefined' ||
       contentInput.style.display = 'none';
       contentView.style.display = 'none';
       deleteBtn.style.display = 'none';
+      copyNoteBtn.style.display = 'none';
       noteTagsEl.style.display = 'none';
       noteTagsEl.innerHTML = '';
       editorMeta.textContent = '';
@@ -665,6 +667,7 @@ if (typeof window.FIREBASE_CONFIG === 'undefined' ||
     emptyState.classList.remove('visible');
     titleInput.style.display = 'block';
     deleteBtn.style.display = 'inline-block';
+    copyNoteBtn.style.display = 'inline-flex';
     noteTagsEl.style.display = 'flex';
     titleInput.value = note.title || '';
     contentInput.value = note.content || '';
@@ -723,6 +726,51 @@ if (typeof window.FIREBASE_CONFIG === 'undefined' ||
     if (!currentNoteId) return;
     showContentEditMode();
   });
+
+  // --- 全文コピー ---
+  // タイトルと本文をまとめてクリップボードにコピーする(歌詞や下書きをそのまま他アプリに貼り付けたいとき用)
+  let copyResetTimer = null;
+  function copyCurrentNote() {
+    const note = notes.find((n) => n.id === currentNoteId);
+    if (!note) return;
+    const title = (note.title || '').trim();
+    const content = (contentInput.value !== undefined ? contentInput.value : note.content) || '';
+    const text = title ? `${title}\n\n${content}` : content;
+
+    const showCopied = () => {
+      clearTimeout(copyResetTimer);
+      const original = copyNoteBtn.textContent;
+      copyNoteBtn.textContent = '✅';
+      copyResetTimer = setTimeout(() => {
+        copyNoteBtn.textContent = original;
+      }, 1500);
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(showCopied).catch(() => fallbackCopy(text, showCopied));
+    } else {
+      fallbackCopy(text, showCopied);
+    }
+  }
+
+  function fallbackCopy(text, onSuccess) {
+    try {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      if (onSuccess) onSuccess();
+    } catch (e) {
+      console.error('コピーに失敗しました', e);
+    }
+  }
+
+  copyNoteBtn.addEventListener('click', copyCurrentNote);
 
   contentInput.addEventListener('blur', () => {
     showContentViewMode();
