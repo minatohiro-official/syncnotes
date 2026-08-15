@@ -37,9 +37,6 @@ const deleteBtn = document.getElementById('delete-note-btn');
 const backBtn = document.getElementById('back-btn');
 const noteTagsEl = document.getElementById('note-tags');
 const appContainer = document.querySelector('.app-container');
-const lyricsModeBtn = document.getElementById('lyrics-mode-btn');
-const lyricsGutter = document.getElementById('lyrics-gutter');
-const lyricsStatsEl = document.getElementById('lyrics-stats');
 const editorPaneEl = document.getElementById('editor-pane');
 const fontSettingsBtn = document.getElementById('font-settings-btn');
 const fontSettingsPanel = document.getElementById('font-settings-panel');
@@ -382,21 +379,7 @@ if (typeof window.FIREBASE_CONFIG === 'undefined' ||
     });
 
     titleInput.addEventListener('input', () => scheduleSave(notesRef));
-    contentInput.addEventListener('input', () => {
-      scheduleSave(notesRef);
-      updateLyricsGutter();
-    });
-
-    lyricsModeBtn.addEventListener('click', () => {
-      const note = notes.find((n) => n.id === currentNoteId);
-      if (!note) return;
-      note.lyricsMode = !note.lyricsMode;
-      applyLyricsModeUI(note);
-      notesRef.doc(currentNoteId).update({
-        lyricsMode: note.lyricsMode,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-      }).catch((err) => console.error(err));
-    });
+    contentInput.addEventListener('input', () => scheduleSave(notesRef));
 
     searchInput.addEventListener('input', renderNotesList);
 
@@ -673,18 +656,15 @@ if (typeof window.FIREBASE_CONFIG === 'undefined' ||
       contentInput.style.display = 'none';
       contentView.style.display = 'none';
       deleteBtn.style.display = 'none';
-      lyricsModeBtn.style.display = 'none';
       noteTagsEl.style.display = 'none';
       noteTagsEl.innerHTML = '';
       editorMeta.textContent = '';
-      editorPaneEl.classList.remove('lyrics-mode');
       emptyState.classList.add('visible');
       return;
     }
     emptyState.classList.remove('visible');
     titleInput.style.display = 'block';
     deleteBtn.style.display = 'inline-block';
-    lyricsModeBtn.style.display = 'inline-flex';
     noteTagsEl.style.display = 'flex';
     titleInput.value = note.title || '';
     contentInput.value = note.content || '';
@@ -692,41 +672,8 @@ if (typeof window.FIREBASE_CONFIG === 'undefined' ||
     editorMeta.textContent = note.updatedAt && note.updatedAt.toDate
       ? '最終更新: ' + note.updatedAt.toDate().toLocaleString('ja-JP')
       : '';
-    applyLyricsModeUI(note);
     showContentViewMode();
   }
-
-  // --- 作詞モード ---
-  // メロディに音数を当てはめやすいよう、行ごとの文字数と合計行数/文字数を表示する
-  function applyLyricsModeUI(note) {
-    const on = !!(note && note.lyricsMode);
-    editorPaneEl.classList.toggle('lyrics-mode', on);
-    lyricsModeBtn.title = on ? '作詞モードを終了' : '作詞モード(行ごとの文字数を表示)';
-    updateLyricsGutter();
-  }
-
-  function updateLyricsGutter() {
-    const note = notes.find((n) => n.id === currentNoteId);
-    if (!note || !note.lyricsMode) return;
-    const isEditing = contentInput.style.display !== 'none';
-    const value = isEditing ? contentInput.value : (note.content || '');
-    const lines = value.split('\n');
-    lyricsGutter.innerHTML = lines.map((line) => {
-      const count = Array.from(line).length;
-      return `<div class="lyrics-gutter-line">${count > 0 ? count : ''}</div>`;
-    }).join('');
-    const totalChars = Array.from(value.replace(/\n/g, '')).length;
-    const nonEmptyLines = lines.filter((l) => l.trim().length > 0).length;
-    lyricsStatsEl.textContent = `${nonEmptyLines}行 / 合計${totalChars}文字`;
-    lyricsGutter.scrollTop = isEditing ? contentInput.scrollTop : contentView.scrollTop;
-  }
-
-  contentInput.addEventListener('scroll', () => {
-    if (editorPaneEl.classList.contains('lyrics-mode')) lyricsGutter.scrollTop = contentInput.scrollTop;
-  });
-  contentView.addEventListener('scroll', () => {
-    if (editorPaneEl.classList.contains('lyrics-mode')) lyricsGutter.scrollTop = contentView.scrollTop;
-  });
 
   // --- URLを自動でリンク化する ---
   function escapeHtml(str) {
@@ -761,7 +708,6 @@ if (typeof window.FIREBASE_CONFIG === 'undefined' ||
     contentView.style.display = 'block';
     contentView.innerHTML = linkify(contentInput.value);
     contentView.setAttribute('data-placeholder', 'ここにメモを入力…');
-    updateLyricsGutter();
   }
 
   function showContentEditMode() {
@@ -770,7 +716,6 @@ if (typeof window.FIREBASE_CONFIG === 'undefined' ||
     contentInput.focus();
     const len = contentInput.value.length;
     contentInput.setSelectionRange(len, len);
-    updateLyricsGutter();
   }
 
   contentView.addEventListener('click', (e) => {

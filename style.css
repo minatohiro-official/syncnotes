@@ -227,7 +227,7 @@ html, body {
 .modal-actions { display: flex; gap: 10px; margin-top: 16px; }
 .modal-actions .btn { width: auto; flex: 1; }
 
-.editor-pane { flex: 1; display: flex; flex-direction: column; padding: 0 40px; position: relative; background: var(--surface); }
+.editor-pane { flex: 1; display: flex; flex-direction: column; padding: 0 40px; position: relative; background: var(--surface); min-height: 0; }
 .editor-toolbar {
   display: flex; align-items: center; justify-content: space-between;
   padding: 18px 0; border-bottom: 1px solid var(--border);
@@ -294,7 +294,6 @@ html, body {
   font-family: var(--note-font-family);
 }
 .note-title-input::placeholder { color: var(--text-faint); }
-.editor-body { flex: 1; display: flex; min-height: 0; position: relative; }
 .note-content-input {
   border: none; outline: none; resize: none; flex: 1; font-size: var(--note-font-size);
   line-height: 1.75; padding-bottom: 28px; width: 100%; font-family: var(--note-font-family);
@@ -312,29 +311,6 @@ html, body {
 .note-content-view:empty::before {
   content: attr(data-placeholder); color: var(--text-faint);
 }
-
-/* 作詞モード: 行ごとの文字数を左側に表示し、メロディへの当てはめを検討しやすくする */
-.lyrics-stats {
-  display: none; font-size: .74rem; color: var(--text-faint); font-weight: 600;
-  padding-top: 6px; letter-spacing: .01em;
-}
-.lyrics-gutter {
-  display: none; width: 0; flex-shrink: 0; overflow: hidden;
-  text-align: right; padding: 0 10px 0 0; margin-right: 10px;
-  border-right: 1px solid var(--border);
-  color: var(--text-faint); font-size: .78rem; font-weight: 600;
-  font-family: "SF Mono", Menlo, Consolas, monospace;
-  line-height: 1.75; user-select: none;
-}
-.lyrics-gutter-line { white-space: nowrap; }
-.editor-pane.lyrics-mode .lyrics-stats { display: block; }
-.editor-pane.lyrics-mode .lyrics-gutter { display: block; width: 2.6em; }
-.editor-pane.lyrics-mode .note-content-input,
-.editor-pane.lyrics-mode .note-content-view {
-  font-family: "SF Mono", Menlo, Consolas, monospace;
-  padding-top: 0;
-}
-.editor-pane.lyrics-mode #lyrics-mode-btn { background: var(--accent-light); color: var(--accent-dark); }
 
 .empty-state {
   position: absolute; inset: 0; display: none; align-items: center; justify-content: center;
@@ -387,7 +363,6 @@ html, body {
   .note-title-input { font-size: 1.55rem; padding: 20px 0 10px; }
   .note-content-input { line-height: 1.8; }
   .note-content-view { line-height: 1.8; }
-  .lyrics-gutter { line-height: 1.8; font-size: .84rem; }
   .font-settings-panel { right: -18px; width: 200px; }
 
   .btn { padding: 15px 20px; font-size: 1.05rem; }
