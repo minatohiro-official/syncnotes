@@ -713,18 +713,42 @@ if (typeof window.FIREBASE_CONFIG === 'undefined' ||
     contentView.setAttribute('data-placeholder', 'ここにメモを入力…');
   }
 
-  function showContentEditMode() {
+  function showContentEditMode(caretOffset) {
     contentView.style.display = 'none';
     contentInput.style.display = 'block';
     contentInput.focus();
     const len = contentInput.value.length;
-    contentInput.setSelectionRange(len, len);
+    const pos = (typeof caretOffset === 'number' && caretOffset >= 0 && caretOffset <= len)
+      ? caretOffset
+      : len;
+    contentInput.setSelectionRange(pos, pos);
+  }
+
+  // タップ/クリックした座標を、表示用div内の文字位置(本文中の何文字目か)に変換する。
+  // これにより「本文をタップして編集モードに入る」ときに、タップした場所にカーソルを置ける。
+  function getTextOffsetFromPoint(x, y) {
+    let range = null;
+    if (document.caretRangeFromPoint) {
+      range = document.caretRangeFromPoint(x, y);
+    } else if (document.caretPositionFromPoint) {
+      const pos = document.caretPositionFromPoint(x, y);
+      if (pos) {
+        range = document.createRange();
+        range.setStart(pos.offsetNode, pos.offset);
+      }
+    }
+    if (!range || !contentView.contains(range.startContainer)) return null;
+    const preRange = document.createRange();
+    preRange.selectNodeContents(contentView);
+    preRange.setEnd(range.startContainer, range.startOffset);
+    return preRange.toString().length;
   }
 
   contentView.addEventListener('click', (e) => {
     if (e.target.tagName === 'A') return; // リンクはそのまま開く
     if (!currentNoteId) return;
-    showContentEditMode();
+    const offset = getTextOffsetFromPoint(e.clientX, e.clientY);
+    showContentEditMode(offset);
   });
 
   // --- 全文コピー ---
