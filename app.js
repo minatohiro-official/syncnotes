@@ -275,6 +275,7 @@ if (typeof window.FIREBASE_CONFIG === 'undefined' ||
             renderEditor();
           }
         }
+        backfillAutoLinkTags(notesRef);
       },
       (err) => {
         console.error(err);
@@ -325,6 +326,38 @@ if (typeof window.FIREBASE_CONFIG === 'undefined' ||
   // URLがなくなったら自動で外す(手動で付けたタグには影響しない)
   const AUTO_LINK_TAG = 'リンク';
   const AUTO_LINK_REGEX = /https?:\/\/\S+/;
+
+  // 同期で読み込んだ時点で、まだ「リンク」タグが付いていない/外れていない
+  // 既存メモを一括で補正する(機能追加前に作られたメモや、他端末での編集分もカバーする)
+  let backfillInProgress = false;
+  function backfillAutoLinkTags(notesRef) {
+    if (backfillInProgress) return;
+    const targets = notes.filter((note) => {
+      const hasLink = AUTO_LINK_REGEX.test(note.content || '');
+      const tags = note.tags || [];
+      const hasTag = tags.includes(AUTO_LINK_TAG);
+      return hasLink !== hasTag;
+    });
+    if (!targets.length) return;
+    backfillInProgress = true;
+    Promise.all(targets.map((note) => {
+      const hasLink = AUTO_LINK_REGEX.test(note.content || '');
+      const tags = note.tags || [];
+      const newTags = hasLink
+        ? [...tags, AUTO_LINK_TAG]
+        : tags.filter((t) => t !== AUTO_LINK_TAG);
+      note.tags = newTags;
+      return notesRef.doc(note.id).update({ tags: newTags }).catch((err) => console.error(err));
+    })).then(() => {
+      backfillInProgress = false;
+      renderNotesList();
+      renderTagFilter();
+      if (currentNoteId) {
+        const current = notes.find((n) => n.id === currentNoteId);
+        if (current) renderNoteTags(current);
+      }
+    });
+  }
 
   function scheduleSave(notesRef) {
     if (!currentNoteId) return;
