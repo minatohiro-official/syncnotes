@@ -29,6 +29,7 @@ const tagFilterEl = document.getElementById('tag-filter');
 
 const titleInput = document.getElementById('note-title');
 const contentInput = document.getElementById('note-content');
+const contentView = document.getElementById('note-content-view');
 const emptyState = document.getElementById('empty-state');
 const editorMeta = document.getElementById('editor-meta');
 const deleteBtn = document.getElementById('delete-note-btn');
@@ -464,6 +465,7 @@ if (typeof window.FIREBASE_CONFIG === 'undefined' ||
     if (!note) {
       titleInput.style.display = 'none';
       contentInput.style.display = 'none';
+      contentView.style.display = 'none';
       deleteBtn.style.display = 'none';
       noteTagsEl.style.display = 'none';
       noteTagsEl.innerHTML = '';
@@ -473,7 +475,6 @@ if (typeof window.FIREBASE_CONFIG === 'undefined' ||
     }
     emptyState.classList.remove('visible');
     titleInput.style.display = 'block';
-    contentInput.style.display = 'block';
     deleteBtn.style.display = 'inline-block';
     noteTagsEl.style.display = 'flex';
     titleInput.value = note.title || '';
@@ -482,7 +483,61 @@ if (typeof window.FIREBASE_CONFIG === 'undefined' ||
     editorMeta.textContent = note.updatedAt && note.updatedAt.toDate
       ? '最終更新: ' + note.updatedAt.toDate().toLocaleString('ja-JP')
       : '';
+    showContentViewMode();
   }
+
+  // --- URLを自動でリンク化する ---
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function linkify(text) {
+    const escaped = escapeHtml(text || '');
+    const urlRegex = /(https?:\/\/[^\s<]+)/g;
+    return escaped.replace(urlRegex, (raw) => {
+      let url = raw;
+      let trail = '';
+      const m = url.match(/[),.;:!?'"]+$/);
+      if (m) {
+        trail = m[0];
+        url = url.slice(0, -trail.length);
+      }
+      if (!url) return raw;
+      return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>${trail}`;
+    });
+  }
+
+  // メモ本文: 表示中はリンクをタップで開けるようにし、
+  // 本文をタップすると編集モードに切り替わる
+  function showContentViewMode() {
+    contentInput.style.display = 'none';
+    contentView.style.display = 'block';
+    contentView.innerHTML = linkify(contentInput.value);
+    contentView.setAttribute('data-placeholder', 'ここにメモを入力…');
+  }
+
+  function showContentEditMode() {
+    contentView.style.display = 'none';
+    contentInput.style.display = 'block';
+    contentInput.focus();
+    const len = contentInput.value.length;
+    contentInput.setSelectionRange(len, len);
+  }
+
+  contentView.addEventListener('click', (e) => {
+    if (e.target.tagName === 'A') return; // リンクはそのまま開く
+    if (!currentNoteId) return;
+    showContentEditMode();
+  });
+
+  contentInput.addEventListener('blur', () => {
+    showContentViewMode();
+  });
 
   // 初期表示はメモ未選択状態
   renderEditor();

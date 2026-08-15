@@ -269,6 +269,17 @@ html, body {
   color: var(--text); background: transparent;
 }
 .note-content-input::placeholder { color: var(--text-faint); }
+.note-content-view {
+  flex: 1; font-size: 1rem; line-height: 1.75; padding-bottom: 28px;
+  width: 100%; font-family: inherit; white-space: pre-wrap; word-break: break-word;
+  overflow-y: auto; cursor: text; color: var(--text);
+}
+.note-content-view a {
+  color: var(--accent); text-decoration: underline;
+}
+.note-content-view:empty::before {
+  content: attr(data-placeholder); color: var(--text-faint);
+}
 
 .empty-state {
   position: absolute; inset: 0; display: none; align-items: center; justify-content: center;
@@ -320,6 +331,7 @@ html, body {
   .editor-meta { font-size: .85rem; }
   .note-title-input { font-size: 1.55rem; padding: 20px 0 10px; }
   .note-content-input { font-size: 1.05rem; line-height: 1.8; }
+  .note-content-view { font-size: 1.05rem; line-height: 1.8; }
 
   .btn { padding: 15px 20px; font-size: 1.05rem; }
   .text-input { padding: 15px 16px; font-size: 1.05rem; }
