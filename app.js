@@ -11,6 +11,7 @@ const emailAuthForm = document.getElementById('email-auth-form');
 const emailInput = document.getElementById('email-input');
 const passwordInput = document.getElementById('password-input');
 const emailSignupBtn = document.getElementById('email-signup-btn');
+const biometricSigninBtn = document.getElementById('biometric-signin-btn');
 
 const setPasswordBtn = document.getElementById('set-password-btn');
 const passwordModal = document.getElementById('password-modal');
@@ -87,6 +88,49 @@ if (typeof window.FIREBASE_CONFIG === 'undefined' ||
     emailSignupBtn.style.display = 'none';
   });
 
+  // ブラウザのパスワード保存機能(iPhoneならFace ID/Touch IDで解錠)に
+  // メール+パスワードを覚えてもらい、次回以降は生体認証だけでログインできるようにする
+  function rememberCredential(email, password) {
+    if (!('credentials' in navigator) || typeof window.PasswordCredential === 'undefined') return;
+    try {
+      const cred = new PasswordCredential({ id: email, password, name: email });
+      navigator.credentials.store(cred).catch(() => {});
+    } catch (e) {
+      // 対応していないブラウザでは何もしない
+    }
+  }
+
+  // 保存済みのパスワードでサインインを試みる共通処理
+  function signInWithSavedCredential(mediation) {
+    if (!('credentials' in navigator) || typeof window.PasswordCredential === 'undefined') {
+      return Promise.resolve(false);
+    }
+    return navigator.credentials.get({ password: true, mediation }).then((cred) => {
+      if (cred && cred.type === 'password' && cred.id && cred.password) {
+        loginError.textContent = '';
+        return auth.signInWithEmailAndPassword(cred.id, cred.password).then(() => true);
+      }
+      return false;
+    }).catch(() => false);
+  }
+
+  if ('credentials' in navigator && typeof window.PasswordCredential !== 'undefined') {
+    // 対応ブラウザではFace ID / Touch IDボタンを表示しておく
+    biometricSigninBtn.style.display = 'block';
+    // ページを開いた時点で、ユーザー操作なしに解錠できる場合は自動でログインする
+    // (直前に許可した端末などで、ブラウザが確認なしに渡してよいと判断した場合のみ発生)
+    signInWithSavedCredential('silent');
+  }
+
+  biometricSigninBtn.addEventListener('click', () => {
+    loginError.textContent = '';
+    signInWithSavedCredential('optional').then((ok) => {
+      if (!ok) {
+        loginError.textContent = '保存されたパスワードが見つかりませんでした。メールアドレスとパスワードでログインしてください。';
+      }
+    });
+  });
+
   emailAuthForm.addEventListener('submit', (e) => {
     e.preventDefault();
     loginError.textContent = '';
@@ -100,7 +144,9 @@ if (typeof window.FIREBASE_CONFIG === 'undefined' ||
       ? auth.createUserWithEmailAndPassword(email, password)
       : auth.signInWithEmailAndPassword(email, password);
 
-    action.catch((err) => {
+    action.then(() => {
+      rememberCredential(email, password);
+    }).catch((err) => {
       if (err.code === 'auth/user-not-found') {
         loginError.textContent = 'アカウントが見つかりません。「はじめての方はこちら」から登録してください。';
       } else if (err.code === 'auth/email-already-in-use') {
@@ -165,6 +211,7 @@ if (typeof window.FIREBASE_CONFIG === 'undefined' ||
     user.linkWithCredential(credential).then(() => {
       passwordModalSave.disabled = false;
       passwordModalSave.textContent = '保存';
+      rememberCredential(user.email, pw1);
       closePasswordModal();
       alert('パスワードを設定しました。今後は他の端末でも、このメールアドレスとパスワードでログインできます。');
     }).catch((err) => {
@@ -173,6 +220,7 @@ if (typeof window.FIREBASE_CONFIG === 'undefined' ||
         user.updatePassword(pw1).then(() => {
           passwordModalSave.disabled = false;
           passwordModalSave.textContent = '保存';
+          rememberCredential(user.email, pw1);
           closePasswordModal();
           alert('パスワードを更新しました。今後は他の端末でも、このメールアドレスと新しいパスワードでログインできます。');
         }).catch((err2) => {
@@ -273,17 +321,36 @@ if (typeof window.FIREBASE_CONFIG === 'undefined' ||
     appContainer.classList.remove('show-editor');
   }
 
+  // メモの本文にURLが含まれていたら自動で「リンク」タグを付け、
+  // URLがなくなったら自動で外す(手動で付けたタグには影響しない)
+  const AUTO_LINK_TAG = 'リンク';
+  const AUTO_LINK_REGEX = /https?:\/\/\S+/;
+
   function scheduleSave(notesRef) {
     if (!currentNoteId) return;
     clearTimeout(saveTimer);
     syncStatusEl.textContent = '保存中…';
     saveTimer = setTimeout(() => {
+      const note = notes.find((n) => n.id === currentNoteId);
+      const content = contentInput.value;
+      const hasLink = AUTO_LINK_REGEX.test(content);
+      let tags = (note && note.tags) || [];
+      if (hasLink && !tags.includes(AUTO_LINK_TAG)) {
+        tags = [...tags, AUTO_LINK_TAG];
+      } else if (!hasLink && tags.includes(AUTO_LINK_TAG)) {
+        tags = tags.filter((t) => t !== AUTO_LINK_TAG);
+      }
+      if (note) note.tags = tags;
+
       notesRef.doc(currentNoteId).update({
         title: titleInput.value,
-        content: contentInput.value,
+        content,
+        tags,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       }).then(() => {
         syncStatusEl.textContent = '同期済み ✓';
+        if (note) renderNoteTags(note);
+        renderTagFilter();
       }).catch((err) => {
         console.error(err);
         syncStatusEl.textContent = '保存エラー';
