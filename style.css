@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;600;700&family=Shippori+Mincho:wght@400;500;600&family=Zen+Maru+Gothic:wght@400;500;700&display=swap');
 
 :root {
   --accent: #6d5efc;
@@ -17,6 +17,8 @@
   --shadow-sm: 0 2px 8px rgba(30, 20, 60, .05);
   --shadow-md: 0 10px 30px rgba(50, 30, 100, .10);
   --shadow-lg: 0 20px 60px rgba(40, 20, 90, .18);
+  --note-font-size: 1rem;
+  --note-font-family: inherit;
 }
 
 * { box-sizing: border-box; }
@@ -233,6 +235,35 @@ html, body {
 .editor-meta { font-size: .78rem; color: var(--text-faint); font-weight: 500; }
 .mobile-only { display: none; }
 
+/* 文字サイズ・フォント設定 */
+.font-settings-wrap { position: relative; display: inline-flex; }
+#font-settings-btn { font-size: .95rem; font-weight: 800; }
+.font-settings-panel {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 20;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md); padding: 14px; width: 220px;
+}
+.font-settings-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.font-settings-row + .font-settings-row { margin-top: 12px; }
+.font-settings-label { font-size: .78rem; color: var(--text-dim); font-weight: 600; }
+.font-size-controls { display: flex; align-items: center; gap: 6px; }
+.font-size-btn {
+  width: 28px; height: 28px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+  background: #fff; color: var(--text); cursor: pointer; font-size: .8rem; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center; font-family: inherit;
+  transition: background .15s ease, border-color .15s ease;
+}
+.font-size-btn:hover { background: var(--accent-light); border-color: #ded6ff; }
+#font-size-label { font-size: .8rem; color: var(--text); min-width: 34px; text-align: center; font-weight: 600; }
+.font-family-select {
+  width: 100%; margin-top: 8px; padding: 8px 10px; border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border); font-size: .85rem; font-family: inherit; background: var(--bg);
+  color: var(--text);
+}
+.font-family-select:focus { outline: none; border-color: var(--accent); }
+
 /* タグ入力 */
 .note-tags {
   display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
@@ -260,18 +291,19 @@ html, body {
 .note-title-input {
   border: none; outline: none; font-size: 1.6rem; font-weight: 800; letter-spacing: -.01em;
   padding: 24px 0 8px; width: 100%; background: transparent; color: var(--text);
-  font-family: inherit;
+  font-family: var(--note-font-family);
 }
 .note-title-input::placeholder { color: var(--text-faint); }
+.editor-body { flex: 1; display: flex; min-height: 0; position: relative; }
 .note-content-input {
-  border: none; outline: none; resize: none; flex: 1; font-size: 1rem;
-  line-height: 1.75; padding-bottom: 28px; width: 100%; font-family: inherit;
+  border: none; outline: none; resize: none; flex: 1; font-size: var(--note-font-size);
+  line-height: 1.75; padding-bottom: 28px; width: 100%; font-family: var(--note-font-family);
   color: var(--text); background: transparent;
 }
 .note-content-input::placeholder { color: var(--text-faint); }
 .note-content-view {
-  flex: 1; font-size: 1rem; line-height: 1.75; padding-bottom: 28px;
-  width: 100%; font-family: inherit; white-space: pre-wrap; word-break: break-word;
+  flex: 1; font-size: var(--note-font-size); line-height: 1.75; padding-bottom: 28px;
+  width: 100%; font-family: var(--note-font-family); white-space: pre-wrap; word-break: break-word;
   overflow-y: auto; cursor: text; color: var(--text);
 }
 .note-content-view a {
@@ -280,6 +312,29 @@ html, body {
 .note-content-view:empty::before {
   content: attr(data-placeholder); color: var(--text-faint);
 }
+
+/* 作詞モード: 行ごとの文字数を左側に表示し、メロディへの当てはめを検討しやすくする */
+.lyrics-stats {
+  display: none; font-size: .74rem; color: var(--text-faint); font-weight: 600;
+  padding-top: 6px; letter-spacing: .01em;
+}
+.lyrics-gutter {
+  display: none; width: 0; flex-shrink: 0; overflow: hidden;
+  text-align: right; padding: 0 10px 0 0; margin-right: 10px;
+  border-right: 1px solid var(--border);
+  color: var(--text-faint); font-size: .78rem; font-weight: 600;
+  font-family: "SF Mono", Menlo, Consolas, monospace;
+  line-height: 1.75; user-select: none;
+}
+.lyrics-gutter-line { white-space: nowrap; }
+.editor-pane.lyrics-mode .lyrics-stats { display: block; }
+.editor-pane.lyrics-mode .lyrics-gutter { display: block; width: 2.6em; }
+.editor-pane.lyrics-mode .note-content-input,
+.editor-pane.lyrics-mode .note-content-view {
+  font-family: "SF Mono", Menlo, Consolas, monospace;
+  padding-top: 0;
+}
+.editor-pane.lyrics-mode #lyrics-mode-btn { background: var(--accent-light); color: var(--accent-dark); }
 
 .empty-state {
   position: absolute; inset: 0; display: none; align-items: center; justify-content: center;
@@ -330,8 +385,10 @@ html, body {
   .editor-toolbar { padding: calc(16px + env(safe-area-inset-top)) 0 16px; }
   .editor-meta { font-size: .85rem; }
   .note-title-input { font-size: 1.55rem; padding: 20px 0 10px; }
-  .note-content-input { font-size: 1.05rem; line-height: 1.8; }
-  .note-content-view { font-size: 1.05rem; line-height: 1.8; }
+  .note-content-input { line-height: 1.8; }
+  .note-content-view { line-height: 1.8; }
+  .lyrics-gutter { line-height: 1.8; font-size: .84rem; }
+  .font-settings-panel { right: -18px; width: 200px; }
 
   .btn { padding: 15px 20px; font-size: 1.05rem; }
   .text-input { padding: 15px 16px; font-size: 1.05rem; }

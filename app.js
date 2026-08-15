@@ -37,6 +37,16 @@ const deleteBtn = document.getElementById('delete-note-btn');
 const backBtn = document.getElementById('back-btn');
 const noteTagsEl = document.getElementById('note-tags');
 const appContainer = document.querySelector('.app-container');
+const lyricsModeBtn = document.getElementById('lyrics-mode-btn');
+const lyricsGutter = document.getElementById('lyrics-gutter');
+const lyricsStatsEl = document.getElementById('lyrics-stats');
+const editorPaneEl = document.getElementById('editor-pane');
+const fontSettingsBtn = document.getElementById('font-settings-btn');
+const fontSettingsPanel = document.getElementById('font-settings-panel');
+const fontSizeLabel = document.getElementById('font-size-label');
+const fontSizeDecreaseBtn = document.getElementById('font-size-decrease');
+const fontSizeIncreaseBtn = document.getElementById('font-size-increase');
+const fontFamilySelect = document.getElementById('font-family-select');
 
 let notes = [];
 let currentNoteId = null;
@@ -44,6 +54,88 @@ let unsubscribeNotes = null;
 let saveTimer = null;
 let currentNotesRef = null;
 let activeTagFilter = null;
+
+// --- 文字サイズ・フォント設定 ---
+// メモの内容ではなく端末ごとの表示設定なので、FirestoreではなくlocalStorageに保存する
+(function initFontSettings() {
+  const STORAGE_KEY = 'syncnotes-font-prefs';
+  const SIZE_MIN = 13;
+  const SIZE_MAX = 26;
+  const SIZE_DEFAULT = 16;
+  const FONT_FAMILIES = {
+    default: '"Inter", "Noto Sans JP", -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif',
+    serif: '"Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif',
+    rounded: '"Zen Maru Gothic", "Hiragino Sans", sans-serif',
+    mono: '"SF Mono", Menlo, Consolas, monospace',
+  };
+
+  function loadPrefs() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return { size: SIZE_DEFAULT, family: 'default' };
+      const parsed = JSON.parse(raw);
+      const size = Number(parsed.size);
+      const family = FONT_FAMILIES[parsed.family] ? parsed.family : 'default';
+      return {
+        size: Number.isFinite(size) ? Math.min(SIZE_MAX, Math.max(SIZE_MIN, size)) : SIZE_DEFAULT,
+        family,
+      };
+    } catch (e) {
+      return { size: SIZE_DEFAULT, family: 'default' };
+    }
+  }
+
+  function savePrefs(prefs) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+    } catch (e) {
+      // プライベートブラウズなど保存できない環境では無視する
+    }
+  }
+
+  function applyPrefs(prefs) {
+    document.documentElement.style.setProperty('--note-font-size', prefs.size + 'px');
+    document.documentElement.style.setProperty('--note-font-family', FONT_FAMILIES[prefs.family]);
+    if (fontSizeLabel) fontSizeLabel.textContent = prefs.size + 'px';
+    if (fontFamilySelect) fontFamilySelect.value = prefs.family;
+  }
+
+  if (!fontSettingsBtn) return; // index.htmlが未更新の場合の保険
+
+  let prefs = loadPrefs();
+  applyPrefs(prefs);
+
+  fontSettingsBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = fontSettingsPanel.style.display !== 'none';
+    fontSettingsPanel.style.display = isOpen ? 'none' : 'block';
+  });
+
+  fontSettingsPanel.addEventListener('click', (e) => e.stopPropagation());
+
+  document.addEventListener('click', () => {
+    fontSettingsPanel.style.display = 'none';
+  });
+
+  fontSizeDecreaseBtn.addEventListener('click', () => {
+    prefs = { ...prefs, size: Math.max(SIZE_MIN, prefs.size - 1) };
+    applyPrefs(prefs);
+    savePrefs(prefs);
+  });
+
+  fontSizeIncreaseBtn.addEventListener('click', () => {
+    prefs = { ...prefs, size: Math.min(SIZE_MAX, prefs.size + 1) };
+    applyPrefs(prefs);
+    savePrefs(prefs);
+  });
+
+  fontFamilySelect.addEventListener('change', () => {
+    const family = FONT_FAMILIES[fontFamilySelect.value] ? fontFamilySelect.value : 'default';
+    prefs = { ...prefs, family };
+    applyPrefs(prefs);
+    savePrefs(prefs);
+  });
+})();
 
 // --- 設定チェック ---
 if (typeof window.FIREBASE_CONFIG === 'undefined' ||
@@ -290,7 +382,21 @@ if (typeof window.FIREBASE_CONFIG === 'undefined' ||
     });
 
     titleInput.addEventListener('input', () => scheduleSave(notesRef));
-    contentInput.addEventListener('input', () => scheduleSave(notesRef));
+    contentInput.addEventListener('input', () => {
+      scheduleSave(notesRef);
+      updateLyricsGutter();
+    });
+
+    lyricsModeBtn.addEventListener('click', () => {
+      const note = notes.find((n) => n.id === currentNoteId);
+      if (!note) return;
+      note.lyricsMode = !note.lyricsMode;
+      applyLyricsModeUI(note);
+      notesRef.doc(currentNoteId).update({
+        lyricsMode: note.lyricsMode,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      }).catch((err) => console.error(err));
+    });
 
     searchInput.addEventListener('input', renderNotesList);
 
@@ -567,15 +673,18 @@ if (typeof window.FIREBASE_CONFIG === 'undefined' ||
       contentInput.style.display = 'none';
       contentView.style.display = 'none';
       deleteBtn.style.display = 'none';
+      lyricsModeBtn.style.display = 'none';
       noteTagsEl.style.display = 'none';
       noteTagsEl.innerHTML = '';
       editorMeta.textContent = '';
+      editorPaneEl.classList.remove('lyrics-mode');
       emptyState.classList.add('visible');
       return;
     }
     emptyState.classList.remove('visible');
     titleInput.style.display = 'block';
     deleteBtn.style.display = 'inline-block';
+    lyricsModeBtn.style.display = 'inline-flex';
     noteTagsEl.style.display = 'flex';
     titleInput.value = note.title || '';
     contentInput.value = note.content || '';
@@ -583,8 +692,41 @@ if (typeof window.FIREBASE_CONFIG === 'undefined' ||
     editorMeta.textContent = note.updatedAt && note.updatedAt.toDate
       ? '最終更新: ' + note.updatedAt.toDate().toLocaleString('ja-JP')
       : '';
+    applyLyricsModeUI(note);
     showContentViewMode();
   }
+
+  // --- 作詞モード ---
+  // メロディに音数を当てはめやすいよう、行ごとの文字数と合計行数/文字数を表示する
+  function applyLyricsModeUI(note) {
+    const on = !!(note && note.lyricsMode);
+    editorPaneEl.classList.toggle('lyrics-mode', on);
+    lyricsModeBtn.title = on ? '作詞モードを終了' : '作詞モード(行ごとの文字数を表示)';
+    updateLyricsGutter();
+  }
+
+  function updateLyricsGutter() {
+    const note = notes.find((n) => n.id === currentNoteId);
+    if (!note || !note.lyricsMode) return;
+    const isEditing = contentInput.style.display !== 'none';
+    const value = isEditing ? contentInput.value : (note.content || '');
+    const lines = value.split('\n');
+    lyricsGutter.innerHTML = lines.map((line) => {
+      const count = Array.from(line).length;
+      return `<div class="lyrics-gutter-line">${count > 0 ? count : ''}</div>`;
+    }).join('');
+    const totalChars = Array.from(value.replace(/\n/g, '')).length;
+    const nonEmptyLines = lines.filter((l) => l.trim().length > 0).length;
+    lyricsStatsEl.textContent = `${nonEmptyLines}行 / 合計${totalChars}文字`;
+    lyricsGutter.scrollTop = isEditing ? contentInput.scrollTop : contentView.scrollTop;
+  }
+
+  contentInput.addEventListener('scroll', () => {
+    if (editorPaneEl.classList.contains('lyrics-mode')) lyricsGutter.scrollTop = contentInput.scrollTop;
+  });
+  contentView.addEventListener('scroll', () => {
+    if (editorPaneEl.classList.contains('lyrics-mode')) lyricsGutter.scrollTop = contentView.scrollTop;
+  });
 
   // --- URLを自動でリンク化する ---
   function escapeHtml(str) {
@@ -619,6 +761,7 @@ if (typeof window.FIREBASE_CONFIG === 'undefined' ||
     contentView.style.display = 'block';
     contentView.innerHTML = linkify(contentInput.value);
     contentView.setAttribute('data-placeholder', 'ここにメモを入力…');
+    updateLyricsGutter();
   }
 
   function showContentEditMode() {
@@ -627,6 +770,7 @@ if (typeof window.FIREBASE_CONFIG === 'undefined' ||
     contentInput.focus();
     const len = contentInput.value.length;
     contentInput.setSelectionRange(len, len);
+    updateLyricsGutter();
   }
 
   contentView.addEventListener('click', (e) => {

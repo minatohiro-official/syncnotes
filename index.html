@@ -73,12 +73,39 @@
       <div class="editor-toolbar">
         <button id="back-btn" class="icon-btn mobile-only" title="戻る">←</button>
         <span id="editor-meta" class="editor-meta"></span>
+        <button id="lyrics-mode-btn" class="icon-btn" title="作詞モード(行ごとの文字数を表示)">🎤</button>
+        <div class="font-settings-wrap">
+          <button id="font-settings-btn" class="icon-btn" title="文字サイズ・フォント">Aa</button>
+          <div id="font-settings-panel" class="font-settings-panel" style="display:none;">
+            <div class="font-settings-row">
+              <span class="font-settings-label">文字サイズ</span>
+              <div class="font-size-controls">
+                <button id="font-size-decrease" type="button" class="font-size-btn" title="文字を小さく">A-</button>
+                <span id="font-size-label">16px</span>
+                <button id="font-size-increase" type="button" class="font-size-btn" title="文字を大きく">A+</button>
+              </div>
+            </div>
+            <div class="font-settings-row">
+              <span class="font-settings-label">フォント</span>
+            </div>
+            <select id="font-family-select" class="font-family-select">
+              <option value="default">標準</option>
+              <option value="serif">明朝体</option>
+              <option value="rounded">丸ゴシック</option>
+              <option value="mono">等幅</option>
+            </select>
+          </div>
+        </div>
         <button id="delete-note-btn" class="icon-btn" title="削除">🗑</button>
       </div>
       <div id="note-tags" class="note-tags"></div>
       <input id="note-title" class="note-title-input" placeholder="タイトル" />
-      <textarea id="note-content" class="note-content-input" placeholder="ここにメモを入力…" style="display:none;"></textarea>
-      <div id="note-content-view" class="note-content-view" style="display:none;"></div>
+      <div id="lyrics-stats" class="lyrics-stats"></div>
+      <div id="editor-body" class="editor-body">
+        <div id="lyrics-gutter" class="lyrics-gutter"></div>
+        <textarea id="note-content" class="note-content-input" placeholder="ここにメモを入力…" style="display:none;"></textarea>
+        <div id="note-content-view" class="note-content-view" style="display:none;"></div>
+      </div>
       <div id="empty-state" class="empty-state">
         <p>左のリストからメモを選ぶか、＋で新規作成してください。</p>
       </div>
